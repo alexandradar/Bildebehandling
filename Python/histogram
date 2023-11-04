@@ -1,0 +1,23 @@
+# Kode som lager histogram av et bilde
+
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Load the grayscale image
+image = cv2.imread("/Users/Ellaberg/Desktop/grayscale_eks.png", cv2.IMREAD_GRAYSCALE)
+
+# Calculate the histogram
+hist = cv2.calcHist([image], [0], None, [256], [0, 256])
+
+# Convert the histogram to a NumPy array for easy manipulation
+hist = np.squeeze(hist)
+
+# Plot the histogram
+plt.figure(figsize=(8, 4))
+plt.bar(np.arange(256), hist, width=0.7, color='black')
+plt.title('Grayscale Image Histogram')
+plt.xlabel('Pixel Value')
+plt.ylabel('Frequency')
+plt.xlim([0, 256])  # Set the x-axis limits
+plt.show()

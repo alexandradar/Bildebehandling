@@ -1,0 +1,56 @@
+import cv2
+import numpy as np
+
+# Load the image
+image = cv2.imread('/Users/Ellaberg/Desktop/svarskjema.png')
+
+# Display the original image
+cv2.imshow('Original Image', image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# Convert the image to grayscale
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+# Display the grayscale image
+cv2.imshow('Grayscale Image', gray)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# Apply thresholding to create a binary image (you may need to fine-tune the threshold)
+_, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
+
+# Display the binary image
+cv2.imshow('Binary Image', thresh)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# Find contours in the binary image
+contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+# Define a function to filter out rectangles (tables)
+def is_rectangle(contour):
+    epsilon = 0.05 * cv2.arcLength(contour, True)
+    approx = cv2.approxPolyDP(contour, epsilon, True)
+    return len(approx) == 4
+
+# Initialize a mask to highlight tables and crosses
+mask = np.zeros_like(thresh)
+
+# Iterate through the contours and highlight tables
+for contour in contours:
+    if is_rectangle(contour):
+        cv2.drawContours(mask, [contour], -1, 255, thickness=cv2.FILLED)
+
+# Display the mask
+cv2.imshow('Mask for Tables', mask)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# Bitwise AND the mask with the original image to highlight tables
+highlighted_tables = cv2.bitwise_and(image, image, mask=mask)
+
+# Display the highlighted tables
+cv2.imshow('Highlighted Tables', highlighted_tables)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
