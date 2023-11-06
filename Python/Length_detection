@@ -1,0 +1,57 @@
+import cv2
+import numpy as np
+
+# Load the image
+image_path = '/Users/Ellaberg/Desktop/Threshold_svar.png'
+image = cv2.imread(image_path)
+
+# Convert the image to grayscale
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+# Preprocess the image (you can experiment with different techniques)
+blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+
+# Apply the Sobel filter for vertical edge detection
+sobel_vertical = cv2.Sobel(blurred, cv2.CV_64F, 1, 0, ksize=1)
+
+# Create a binary mask for vertical edges
+vertical_mask = cv2.threshold(np.absolute(sobel_vertical).astype(np.uint8), 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+
+# Find contours in the mask
+contours, _ = cv2.findContours(vertical_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+# Sort the contours based on the y-coordinate of the bounding rectangle
+contours = sorted(contours, key=lambda c: cv2.boundingRect(c)[1])
+
+# Create a copy of the original image
+output_image = image.copy()
+
+# Minimum height threshold for vertical lines (adjust as needed)
+min_line_height = 40
+
+# Initialize variables to keep track of pixel counts and line positions
+previous_line_x = None
+line_pixel_counts = []
+
+# Iterate over the detected contours
+for contour in contours:
+    x, y, w, h = cv2.boundingRect(contour)
+
+    # Check if the contour is a vertical line with the minimum height
+    if h >= min_line_height:
+        if previous_line_x is not None:
+            # Calculate the number of horizontal pixels between the current and previous line
+            line_pixel_count = abs(x - previous_line_x)
+            line_pixel_counts.append(line_pixel_count)
+        previous_line_x = x
+
+# Display the image with detected vertical lines
+cv2.imshow("Image with Vertical Lines", output_image)
+cv2.waitKey(0)
+
+# Close all OpenCV windows
+cv2.destroyAllWindows()
+
+# Print the absolute values of horizontal pixels between lines
+for i, count in enumerate(line_pixel_counts):
+    print(f"Pixels between Line {i + 1} and Line {i + 2}: {abs(count)} pixels")
