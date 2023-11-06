@@ -1,0 +1,27 @@
+# Define the two lists
+numbers_list = [0, 1, 2, 3, 4]
+letters_list = ['A', 'A', 'B', 'C', 'D']
+
+# Create a dictionary to map letters to their corresponding numeric values
+letter_to_value = {'A': 1, 'B': 2, 'C': 3, 'D': 4}
+
+# Initialize a variable to keep track of the total points
+total_points = 0
+
+# Iterate over the indices of the two lists and compare their values
+for i in range(len(numbers_list)):
+    number_value = numbers_list[i]
+    letter_value = letter_to_value.get(letters_list[i], 0)  # Default to 0 if the letter is not in the mapping
+
+    # Compare the values and calculate the points
+    if number_value == letter_value:
+        points = 1
+    elif number_value == 0 or letter_value == 0:
+        points = 0
+    else:
+        points = -0.25
+
+    total_points += points
+
+# Print the total points
+print(f"Total Points: {total_points}")

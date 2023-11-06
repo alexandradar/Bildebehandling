@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 # Load your image
-image = cv2.imread('/Users/Ellaberg/Desktop/Erosion.png')
+image = cv2.imread('/Users/Ellaberg/Desktop/Erosion.png', cv2.IMREAD_GRAYSCALE)
 
 # Define the mask size and step size
 mask_width = 284  # Adjust as needed
@@ -14,26 +14,51 @@ result = np.copy(image)
 # Initialize a counter for the number of times the mask is used
 mask_usage_count = 0
 
+# Create a list to store grayscale values
+grayscale_values = []
+
 # Iterate over the image with the mask
 for x in range(0, image.shape[1] - mask_width, step_size):
     # Define the mask region
-    mask = np.zeros(image.shape[:2], dtype=np.uint8)
-    cv2.rectangle(mask, (x, 0), (x + mask_width, image.shape[0]), 255, thickness=cv2.FILLED)
+    mask = np.zeros(image.shape, dtype=np.uint8)
+    mask[:, x:x + mask_width] = 255
 
-    # Calculate the average pixel value within the mask
-    average_color = cv2.mean(image, mask=mask)[:3]
+    # Calculate the average grayscale value within the mask
+    average_gray_value = np.mean(image[np.where(mask == 255)])
 
-    # Replace the pixels in the result image with the average color
-    result[:, x:x + mask_width] = average_color
+    # Store the average grayscale value in the list
+    grayscale_values.append(average_gray_value)
+
+    # Create an image with the grayscale values
+    result[:, x:x + mask_width] = average_gray_value
+
+    # Print the average grayscale value
+    print(f"Average grayscale value for Mask {mask_usage_count}: {average_gray_value}")
 
     # Increment the mask usage count
     mask_usage_count += 1
 
-# Print the number of times the mask is used
-print(f"Mask used {mask_usage_count} times")
-
-# Display the original and the result images
-cv2.imshow('Original Image', image)
+# Display the image created with grayscale values
 cv2.imshow('Result Image', result)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+# Print the number of times the mask is used
+print(f"Mask used {mask_usage_count} times")
+
+# Calculate the difference between max and min grayscale values
+max_gray_value = max(grayscale_values)
+min_gray_value = min(grayscale_values)
+
+# Create a list to store positions where the difference is over 20
+x_location = []
+
+# Iterate over the grayscale values to check the difference
+if (max_gray_value - min_gray_value) > 20:
+    index_of_min = grayscale_values.index(min_gray_value)
+    x_location.append(index_of_min)
+else:
+    x_location.append(0)
+
+# Print the positions list
+print("X location:", x_location)
