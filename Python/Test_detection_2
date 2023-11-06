@@ -1,26 +1,27 @@
-import cv2
+# Define the two lists
+numbers_list = [0, 1, 2, 3, 4]
+letters_list = ['A', 'A', 'B', 'C', 'D']
 
-# Load the image
-image_path = '/Users/Ellaberg/Desktop/Svar_rad.png'
-image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+# Create a dictionary to map letters to their corresponding numeric values
+letter_to_value = {'A': 1, 'B': 2, 'C': 3, 'D': 4}
 
-# Define the thresholds for black and white pixels
-black_threshold = 100  # Adjust this threshold based on the actual image
-white_threshold = 200  # Adjust this threshold based on the actual image
+# Initialize a variable to keep track of the total points
+total_points = 0
 
-# Initialize variables to keep track of white pixel counts
-counting = False
-white_pixel_count = 0
+# Iterate over the indices of the two lists and compare their values
+for i in range(len(numbers_list)):
+    number_value = numbers_list[i]
+    letter_value = letter_to_value.get(letters_list[i], 0)  # Default to 0 if the letter is not in the mapping
 
-# Iterate through the pixels in the row (adjust the row index as needed)
-row_index = 1  # Adjust this index to the row you want to analyze
-row = image[row_index]
+    # Compare the values and calculate the points
+    if number_value == letter_value:
+        points = 1
+    elif number_value == 0 or letter_value == 0:
+        points = 0
+    else:
+        points = -0.25
 
-for pixel in row:
-    if pixel < black_threshold:
-        counting = True
-    elif pixel > white_threshold and counting:
-        white_pixel_count += 1
+    total_points += points
 
-# Print the white pixel count between the black lines in the row
-print(f"Row {row_index}: {white_pixel_count} white pixels between black lines")
+# Print the total points
+print(f"Total Points: {total_points}")
