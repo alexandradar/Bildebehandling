@@ -1,0 +1,39 @@
+import cv2
+import numpy as np
+
+# Load your image
+image = cv2.imread('/Users/Ellaberg/Desktop/Erosion.png')
+
+# Define the mask size and step size
+mask_width = 284  # Adjust as needed
+step_size = int(image.shape[1] / 5)   # Adjust as needed
+
+# Create an empty result image of the same size as the original
+result = np.copy(image)
+
+# Initialize a counter for the number of times the mask is used
+mask_usage_count = 0
+
+# Iterate over the image with the mask
+for x in range(0, image.shape[1] - mask_width, step_size):
+    # Define the mask region
+    mask = np.zeros(image.shape[:2], dtype=np.uint8)
+    cv2.rectangle(mask, (x, 0), (x + mask_width, image.shape[0]), 255, thickness=cv2.FILLED)
+
+    # Calculate the average pixel value within the mask
+    average_color = cv2.mean(image, mask=mask)[:3]
+
+    # Replace the pixels in the result image with the average color
+    result[:, x:x + mask_width] = average_color
+
+    # Increment the mask usage count
+    mask_usage_count += 1
+
+# Print the number of times the mask is used
+print(f"Mask used {mask_usage_count} times")
+
+# Display the original and the result images
+cv2.imshow('Original Image', image)
+cv2.imshow('Result Image', result)
+cv2.waitKey(0)
+cv2.destroyAllWindows()

@@ -2,23 +2,20 @@ import cv2
 import numpy as np
 
 # Load your image
-image = cv2.imread('/Users/Ellaberg/Desktop/Svar_rad.png', 0)  # Load as grayscale
+image = cv2.imread('/Users/Ellaberg/Desktop/Threshold_svar.png', 0)  # Load as grayscale
 
 if image is None:
     print("Failed to load the image. Please check the image path.")
     exit(1)
 
-# Invert the image (making black pixels white and vice versa)
-inverted_image = cv2.bitwise_not(image)
-
 # Define the kernel for dilation (adjust the size as needed)
 kernel = np.ones((5, 5), np.uint8)
 
 # Initialize the dilated image
-dilated_image = inverted_image.copy()
+eroded_image = image.copy()
 
 # Display the original image
-cv2.imshow("Original Image", inverted_image)
+cv2.imshow("Original Image", image)
 cv2.waitKey(0)
 
 # Number of dilation steps
@@ -26,10 +23,10 @@ num_steps = 5  # Adjust as needed
 
 for step in range(num_steps):
     # Dilate the image
-    dilated_image = cv2.dilate(dilated_image, kernel, iterations=1)
+    eroded_image = cv2.erode(eroded_image, kernel, iterations=1)
 
     # Display the dilated image for this step
-    cv2.imshow(f"Dilated Image - Step {step + 1}", dilated_image)
+    cv2.imshow(f"Eroded Image - Step {step + 1}", eroded_image)
     cv2.waitKey(0)
 
 # Close all OpenCV windows
