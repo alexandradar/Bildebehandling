@@ -1,0 +1,18 @@
+import cv2
+
+# Load your image
+image = cv2.imread('/Users/Ellaberg/Desktop/Rad_svar.png')
+
+# Convert the image to grayscale
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+# Define the threshold value
+threshold_value = 125
+
+# Apply the threshold to the grayscale image
+_, thresh = cv2.threshold(gray, threshold_value, 255, cv2.THRESH_BINARY)
+
+# Display the thresholded image
+cv2.imshow('Thresholded Image', thresh)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
