@@ -1,58 +1,26 @@
 import cv2
-import imutils
-from imutils import contours, perspective
-import pytesseract
 
-# Define the image path (replace with your image path)
-image_path = "/Users/Ellaberg/Desktop/Svarark_1.png"
+# Load the image
+image_path = '/Users/Ellaberg/Desktop/Svar_rad.png'
+image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
-def detect_and_ocr_filled_cells(image_path):
-    # Load the table image
-    image = cv2.imread(image_path)
+# Define the thresholds for black and white pixels
+black_threshold = 100  # Adjust this threshold based on the actual image
+white_threshold = 200  # Adjust this threshold based on the actual image
 
-    # Preprocess the image (adjust these steps based on your image)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+# Initialize variables to keep track of white pixel counts
+counting = False
+white_pixel_count = 0
 
-    # Find contours in the thresholded image
-    cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cnts = imutils.grab_contours(cnts)
+# Iterate through the pixels in the row (adjust the row index as needed)
+row_index = 1  # Adjust this index to the row you want to analyze
+row = image[row_index]
 
-    # Sort the contours by area
-    cnts = sorted(cnts, key=cv2.contourArea, reverse=True)
+for pixel in row:
+    if pixel < black_threshold:
+        counting = True
+    elif pixel > white_threshold and counting:
+        white_pixel_count += 1
 
-    # Initialize a list to store marked cells
-    marked_cells = []
-
-    for c in cnts:
-        # Approximate the contour as a polygon
-        peri = cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-
-        # If the contour has 4 vertices, it's likely a rectangle
-        if len(approx) == 4:
-            (x, y, w, h) = cv2.boundingRect(approx)
-
-            # Crop the rectangular region and perform OCR
-            cell = image[y:y+h, x:x+w]
-            extracted_text = pytesseract.image_to_string(cell, config='--psm 6')  # Assume single line text
-
-            # If the extracted text is not empty, consider it marked
-            if extracted_text.strip():
-                marked_cells.append(1)
-            else:
-                marked_cells.append(0)
-
-    return marked_cells
-
-# Sample correct answers (you should replace these with your own data)
-correct_answers = ['A', 'B', 'C', 'D']
-
-# Detect and OCR filled cells from the image
-marked_cells = detect_and_ocr_filled_cells(image_path)
-
-# Calculate the number of correct answers
-correct_count = sum(marked_cells)
-
-print(f"Number of correct answers: {correct_count}")
+# Print the white pixel count between the black lines in the row
+print(f"Row {row_index}: {white_pixel_count} white pixels between black lines")
