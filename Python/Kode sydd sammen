@@ -1,0 +1,216 @@
+import cv2
+import numpy as np
+
+# Load the table image
+image_path = '/Users/Ellaberg/Desktop/Svarark.png'
+image = cv2.imread(image_path)
+
+# Create an array to store the cropped row images
+row_images = []
+
+# Define the correct answers
+letters_list = ['A', 'B', 'C', 'D', 'D']
+
+# Create a dictionary to map letters to their corresponding numeric values
+letter_to_value = {'A': 1, 'B': 2, 'C': 3, 'D': 4}
+
+# Initialize a variable to keep track of the total points
+total_points = 0
+
+# Initialize variables for vertical line detection
+min_line_height = 30
+
+# Initialize a kernel for erosion (adjust the size as needed)
+kernel = np.ones((5, 5), np.uint8)
+
+# Initialize a variable to track the row number
+row_number = 2  # Start from row 2
+
+# Create a list to store positions where the difference is over 20
+x_location = []
+
+# Display the original image
+cv2.imshow("Original Image", image)
+cv2.waitKey(0)
+
+# Preprocess the image
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+
+# Find contours in the thresholded image
+contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+# Find the contour with the largest area (assuming it's the table)
+if contours:
+    largest_contour = max(contours, key=cv2.contourArea)
+
+    # Get the bounding box of the largest contour
+    x, y, w, h = cv2.boundingRect(largest_contour)
+
+    # Define the border size
+    border_size = 3
+
+    # Adjust the coordinates to include the border
+    x -= border_size
+    y -= border_size
+    w += 2 * border_size
+    h += 2 * border_size
+
+    # Ensure the coordinates are within the image boundaries
+    x = max(0, x)
+    y = max(0, y)
+    w = min(image.shape[1] - x, w)
+    h = min(image.shape[0] - y, h)
+
+    # Crop the edges image to include the table with a border
+    table_image = image[y:y+h, x:x+w]
+
+    # Display the cropped table (edges)
+    cv2.imshow('Cropped Table', table_image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+else:
+    print("No table found in the image.")
+    quit
+
+edges = cv2.Canny(table_image, 50, 150)
+
+# Find horizontal lines using the Hough Line Transform
+lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=100, minLineLength=100, maxLineGap=10)
+
+# Sort the lines based on their y-coordinates
+lines = sorted(lines, key=lambda line: line[0][1])
+
+# Loop through the lines and extract the regions between lines as rows
+for i in range(1, len(lines)):
+    y1 = lines[i - 1][0][1]
+    y2 = lines[i][0][1]
+
+    # Make sure the row is of a certain height (adjust this threshold as needed)
+    if y2 - y1 > 10:
+        edges_row_image = table_image[y1:y2, :]
+         # Convert the row image to grayscale
+        row_image = cv2.cvtColor(edges_row_image, cv2.COLOR_BGR2GRAY)
+        row_images.append(row_image)
+
+# Loop through the row images, starting from the second row
+for i, row_image in enumerate(row_images[1:]):
+    # Display the current row image
+    cv2.imshow(f"Row {row_number} - Original Row Image", row_image)
+    cv2.waitKey(0)
+
+    # Define the threshold value
+    threshold_value = 125
+
+    # Apply the threshold to the grayscale row image
+    _, thresh = cv2.threshold(row_image, threshold_value, 255, cv2.THRESH_BINARY)
+
+    # Display the thresholded row image
+    cv2.imshow(f"Row {row_number} - Thresholded Image", thresh)
+    cv2.waitKey(0)
+
+    # Preprocess the thresholded row image for vertical line detection
+    blurred = cv2.GaussianBlur(thresh, (5, 5), 0)
+    sobel_vertical = cv2.Sobel(blurred, cv2.CV_64F, 1, 0, ksize=3)
+
+    # Create a binary mask for vertical edges
+    vertical_mask = cv2.threshold(np.absolute(sobel_vertical).astype(np.uint8), 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+
+    # Find contours in the mask
+    contours, _ = cv2.findContours(vertical_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Initialize variables to keep track of horizontal distances
+    previous_line_x = None
+
+    # Initialize line number
+    line_number = 1
+
+    # Store the distances between lines
+    line_distances = []
+
+    # Iterate over the detected contours
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
+
+        # Check if the contour is a vertical line with the minimum height
+        if h >= min_line_height:
+            if previous_line_x is not None:
+                # Calculate the horizontal distance between the current and previous line
+                distance = abs(x - previous_line_x)
+                line_distances.append(distance)
+                # Print the distance to the terminal
+                print(f"Row {row_number}: Distance between Line {line_number} and Line {line_number + 1}: {distance} px")
+                line_number += 1
+
+            # Update the previous line position
+            previous_line_x = x
+
+    if line_distances:
+        # Calculate the mask width for this row image
+        mask_width = max(line_distances)
+
+        # Print the mask width
+        print(f"Row {row_number}: Mask Width for this row: {mask_width}")
+
+        # Erode the thresholded row image
+        eroded_image = cv2.erode(thresh, kernel, iterations=5)
+
+        # Display the eroded image
+        cv2.imshow(f"Row {row_number} - Eroded Image", eroded_image)
+        cv2.waitKey(0)
+
+        # Calculate the grayscale values using masks as in the other code
+        step_size = int(eroded_image.shape[1] / 5)  # Adjust as needed
+        result = np.copy(eroded_image)
+        mask_usage_count = 0
+        grayscale_values = []
+
+        for x in range(0, eroded_image.shape[1] - mask_width, step_size):
+            mask = np.zeros(eroded_image.shape, dtype=np.uint8)
+            mask[:, x:x + mask_width] = 255
+            average_gray_value = np.mean(eroded_image[np.where(mask == 255)])
+            grayscale_values.append(average_gray_value)
+            result[:, x:x + mask_width] = average_gray_value
+            print(f"Row {row_number}: Average grayscale value for Mask {mask_usage_count}: {average_gray_value}")
+            mask_usage_count += 1
+
+        cv2.imshow(f"Row {row_number} - Result Image", result)
+        cv2.waitKey(0)
+
+        # Calculate the difference between max and min grayscale values
+        max_gray_value = max(grayscale_values)
+        min_gray_value = min(grayscale_values)
+
+        # Iterate over the grayscale values to check the difference
+        if (max_gray_value - min_gray_value) > 20:
+            index_of_min = grayscale_values.index(min_gray_value)
+            x_location.append(index_of_min)
+        else:
+            x_location.append(0)
+
+    row_number += 1  # Increment the row number for the next row
+
+# Print the positions list
+print("X locations:", x_location)
+
+cv2.destroyAllWindows()
+
+# Sammenlikner fasiten med de innleste svarene
+for i in range(len(x_location)):
+    number_value = x_location[i]
+    letter_value = letter_to_value.get(letters_list[i], 0)  # Default to 0 if the letter is not in the mapping
+
+    # Compare the values and calculate the points
+    if number_value == letter_value:
+        points = 1
+    elif number_value == 0 or letter_value == 0:
+        points = 0
+    else:
+        points = -0.25
+
+    total_points += points
+
+# Print the total points
+print(f"Total Points: {total_points}")

@@ -8,24 +8,24 @@ if image is None:
     print("Failed to load the image. Please check the image path.")
     exit(1)
 
-# Define the kernel for dilation (adjust the size as needed)
+# Define the kernel for erotion (adjust the size as needed)
 kernel = np.ones((5, 5), np.uint8)
 
-# Initialize the dilated image
+# Initialize the eroded image
 eroded_image = image.copy()
 
 # Display the original image
 cv2.imshow("Original Image", image)
 cv2.waitKey(0)
 
-# Number of dilation steps
+# Number of erotion steps
 num_steps = 5  # Adjust as needed
 
 for step in range(num_steps):
-    # Dilate the image
+    # Erode the image
     eroded_image = cv2.erode(eroded_image, kernel, iterations=1)
 
-    # Display the dilated image for this step
+    # Display the eroded image for this step
     cv2.imshow(f"Eroded Image - Step {step + 1}", eroded_image)
     cv2.waitKey(0)
 

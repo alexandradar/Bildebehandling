@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load the grayscale image
-image = cv2.imread("/Users/Ellaberg/Desktop/grayscale_eks.png", cv2.IMREAD_GRAYSCALE)
+image = cv2.imread("/Users/Ellaberg/Desktop/Svarark.png", cv2.IMREAD_GRAYSCALE)
 
 # Calculate the histogram
 hist = cv2.calcHist([image], [0], None, [256], [0, 256])
