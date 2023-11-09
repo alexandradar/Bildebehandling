@@ -1,0 +1,37 @@
+import cv2
+import numpy as np
+
+# Load the image
+image = cv2.imread('/Users/Ellaberg/Desktop/Svarark_table.png')
+
+min_area_threshold = 1000
+
+# Convert the image to grayscale
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+# Apply Gaussian blur to reduce noise
+blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+
+_, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+
+# Find contours in the blurred image
+contours, _ = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+# Filter and draw the contours
+filtered_contours = []
+
+for contour in contours:
+    # Filter based on contour area
+    area = cv2.contourArea(contour)
+    if area > min_area_threshold:
+        filtered_contours.append(contour)
+
+# Draw the filtered contours on the original image
+result_image = image.copy()
+cv2.drawContours(result_image, filtered_contours, -1, (0, 255, 0), 2)
+
+# Display the result
+cv2.imshow('Contours', result_image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
