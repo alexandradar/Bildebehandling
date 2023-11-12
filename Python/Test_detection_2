@@ -6,9 +6,6 @@ import sys
 image_path = '/Users/Ellaberg/Desktop/ordentlig_test_tabell.jpg'
 image = cv2.imread(image_path)
 
-# Create an array to store the cropped row images
-row_images = []
-
 # Define the correct answers
 letters_list = ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A']
 
@@ -18,18 +15,18 @@ total_points = 0
 # Initialize a kernel for erosion (adjust the size as needed)
 kernel = np.ones((5, 5), np.uint8)
 
-# Initialize a variable to track the row number
-row_number = 2  # Start from row 2
+# Create an array to store the cropped row images
+row_images = []
 
 # Create a list to store positions where the difference is over 20
 x_location = []
 
-# Define the threshold value
-threshold_value = 70
-
 # Display the original image
 cv2.imshow("Original Image", image)
 cv2.waitKey(0)
+
+# Define the threshold value
+threshold_value = 70
 
 # Preprocess the image
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -41,13 +38,13 @@ _, thresh = cv2.threshold(blurred, threshold_value, 255, cv2.THRESH_BINARY)
 cv2.imshow("Thresholded Image", thresh)
 cv2.waitKey(0) 
 
-min_area_threshold = 1000
-
 # Find contours in the blurred image
 contours, _ = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
 # Filter and draw the contours
 filtered_contours = []
+
+min_area_threshold = 1000
 
 for contour in contours:
     # Filter based on contour area
@@ -95,8 +92,6 @@ for i in range(2,len(row_images)-2,5):
             print(j[1],j[2])
             sorted_images.append(j[0])
 
-
-
 # Loop through the sorted cell images
 for i, row_image in enumerate(sorted_images):
     # Display the current row image
@@ -122,8 +117,6 @@ for i, row_image in enumerate(sorted_images):
     # Close the windows before moving on to the next set of images
     cv2.destroyAllWindows()
     cv2.waitKey(1)  # Add a small delay to make sure windows are closed
-
-
 
     # Loop through the sorted row images
 for i in range(0, len(sorted_images), 4):
