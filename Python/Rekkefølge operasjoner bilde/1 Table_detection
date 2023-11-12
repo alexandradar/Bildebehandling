@@ -1,52 +1,47 @@
 import cv2
 import numpy as np
 
-# Load the image
-image_path = '/Users/Ellaberg/Desktop/ordentlig_test.jpg'  # Replace with the path to your image
+# Laster inn bildet
+image_path = '/Users/Ellaberg/Desktop/ordentlig_test.jpg'
 image = cv2.imread(image_path)
 
-# Convert the image to grayscale
+# Forprossesering for å gjøre kantene i tabellen lettere å detektere
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-# Apply Gaussian blur to reduce noise
 blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-
-# Use Canny edge detection to find edges in the image
 edges = cv2.Canny(blurred, 50, 150)
 
-# Find contours in the edges image
+# Finner eksterne konturer i bildet(dvs. at cellene ikke blir detektert)
 contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-# Find the contour with the largest area (assuming it's the paper)
+# Finner konturen som er størst, dette vil bli tabellen
 if contours:
     largest_contour = max(contours, key=cv2.contourArea)
 
-    # Get the corner points of the largest contour
+    # Finner koordinatene til hjørnene til tabellen
     x, y, w, h = cv2.boundingRect(largest_contour)
     pts = np.array([[x, y], [x + w, y], [x, y + h], [x + w, y + h]], dtype="float32")
 
-    # Define the desired output rectangle (four corners of a rectangle)
+    # For å sikre at hele tabellen blir med i bildet, tas det med en kant på 20 piksler (kan endres) av bildet rundt tabellen
     border_size = 20
-    width, height = w + 2 * border_size, h + 2 * border_size  # Add the border size
+    width, height = w + 2 * border_size, h + 2 * border_size
 
     dst_pts = np.array([[border_size, border_size],
                         [width - border_size - 1, border_size],
                         [border_size, height - border_size - 1],
                         [width - border_size - 1, height - border_size - 1]], dtype="float32")
 
-    # Compute the perspective transformation matrix
+    # Retter opp bildet mer, gjør det enklere å definere horisontale og vertikale linjer senere
     M = cv2.getPerspectiveTransform(pts, dst_pts)
-
-    # Apply the perspective transformation to straighten the image
     warped = cv2.warpPerspective(image, M, (width, height))
 
-    # Add a 10-pixel border with content from the original image
+    # Lager bildet av en rettet opp tabell med en kant rundt tabellen
     bordered_image = cv2.copyMakeBorder(warped, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=(0, 0, 0))
 
-    # Display the straightened and bordered image
+    # Viser resultatet
     cv2.imshow('Straightened & Bordered Image', bordered_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+    
 else:
     print("No paper found in the image.")
 

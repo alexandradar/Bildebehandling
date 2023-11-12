@@ -1,0 +1,50 @@
+#Kode som strekker ut histogrammet til et bilde, og gjør kontrasten til bildet bedre
+
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Laster inn bildet
+image = cv2.imread('/Users/Ellaberg/Desktop/ordentlig_test_tabell.jpg', cv2.IMREAD_GRAYSCALE)
+
+# Definerer hva som er maks og min pikselverdi i det strukkete bildet, her bruker man hele skalaen
+min_output = 0
+max_output = 255
+
+# Finner maks og min pikselverdi i bildet som er lastet inn
+min_input = np.min(image)
+max_input = np.max(image)
+
+# Finner de nye gråtoneverdiene til bildet basert på de gamle
+stretched_image = np.uint8((image - min_input) / (max_input - min_input) * (max_output - min_output) + min_output)
+
+# Lager det gamle og det nye histogrammet
+original_hist = cv2.calcHist([image], [0], None, [256], [0, 256])
+stretched_hist = cv2.calcHist([stretched_image], [0], None, [256], [0, 256])
+
+original_hist = np.squeeze(original_hist)
+stretched_hist = np.squeeze(stretched_hist)
+
+# Plotter histogrammene
+plt.figure(figsize=(10, 5))
+plt.subplot(1, 2, 1)
+plt.title('Originalt histogram')
+plt.xlabel('Gråtoneverdi')
+plt.ylabel('Antall piksler')
+plt.bar(np.arange(256), original_hist, width=0.7, color='black')
+
+plt.subplot(1, 2, 2)
+plt.title('Strukket histogram')
+plt.xlabel('Gråtoneverdi')
+plt.ylabel('Antall piksler')
+plt.bar(np.arange(256), stretched_hist, width=0.7, color='black')
+
+plt.tight_layout()
+plt.show()
+
+# Viser det originale og det nye bildet
+cv2.imshow('Originalt bilde', image)
+cv2.waitKey(0)
+cv2.imshow('Kontrastforbedret bilde', stretched_image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
