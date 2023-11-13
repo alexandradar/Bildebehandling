@@ -21,11 +21,11 @@ Tersklingsverdien kan endres under, og må endres slik at man får med alle cell
 Får man opp en melding at deteksjon ikke kan gjennomføres, er det denne verdien som må endres. """
 
 # Tersklingsverdi (denne som endres)
-threshold_value = 60
+threshold_value = 70
 
 #Forprosessering
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+blurred = cv2.GaussianBlur(gray, (7, 7), 0)
 _, thresh = cv2.threshold(blurred, threshold_value, 255, cv2.THRESH_BINARY)
 
 # Viser det tersklede bildet
