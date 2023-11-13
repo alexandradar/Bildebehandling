@@ -35,13 +35,23 @@ if contours:
     warped = cv2.warpPerspective(image, M, (width, height))
 
     # Lager bildet av en rettet opp tabell med en kant rundt tabellen
-    bordered_image = cv2.copyMakeBorder(warped, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=(0, 0, 0))
+    table_image = cv2.copyMakeBorder(warped, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=(0, 0, 0))
 
     # Viser resultatet
-    cv2.imshow('Straightened & Bordered Image', bordered_image)
+    cv2.imshow('Tabell', table_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
     
 else:
-    print("No paper found in the image.")
+    print("Ingen tabell funnet i bildet.")
 
+
+
+# Filbanen til hvor bildet lagres
+output_path = '/Users/Ellaberg/Desktop/svarark_tabell.jpg'
+
+# Lagrer bildet
+cv2.imwrite(output_path, table_image)
+
+# Viser at bildet er lagret i riktig filbane
+print(f"Bilde lagret i: {output_path}")

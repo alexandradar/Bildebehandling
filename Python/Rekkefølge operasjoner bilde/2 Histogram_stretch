@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Laster inn bildet
-image = cv2.imread('/Users/Ellaberg/Desktop/ordentlig_test_tabell.jpg', cv2.IMREAD_GRAYSCALE)
+image = cv2.imread('/Users/Ellaberg/Desktop/svarark_tabell.jpg', cv2.IMREAD_GRAYSCALE)
 
 # Definerer hva som er maks og min pikselverdi i det strukkete bildet, her bruker man hele skalaen
 min_output = 0
@@ -48,3 +48,14 @@ cv2.waitKey(0)
 cv2.imshow('Kontrastforbedret bilde', stretched_image)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+
+
+# Filbanen til hvor bildet lagres
+output_path = '/Users/Ellaberg/Desktop/svarark_etter_histogram.jpg'
+
+# Lagrer bildet
+cv2.imwrite(output_path, stretched_image)
+
+# Viser at bildet er lagret i riktig filbane
+print(f"Bilde lagret i: {output_path}")

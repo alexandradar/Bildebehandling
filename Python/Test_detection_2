@@ -1,162 +1,288 @@
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 import sys
 
-# Load the table image
-image_path = '/Users/Ellaberg/Desktop/ordentlig_test_tabell.jpg'
+# Dette er listen for fasitsvar, kan endres hvis fasiten endrer seg
+answer_list = ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A']
+
+
+
+# Laster inn bildet
+image_path = '/Users/Ellaberg/Desktop/tull.jpg'
 image = cv2.imread(image_path)
 
-# Define the correct answers
-letters_list = ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A']
-
-# Initialize a variable to keep track of the total points
-total_points = 0
-
-# Initialize a kernel for erosion (adjust the size as needed)
-kernel = np.ones((5, 5), np.uint8)
-
-# Create an array to store the cropped row images
-row_images = []
-
-# Create a list to store positions where the difference is over 20
-x_location = []
-
-# Display the original image
-cv2.imshow("Original Image", image)
+# Viser originalbildet
+cv2.imshow("Originalt bilde", image)
 cv2.waitKey(0)
 
-# Define the threshold value
-threshold_value = 70
-
-# Preprocess the image
+# Forprossesering for å gjøre kantene i tabellen lettere å detektere
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 blurred = cv2.GaussianBlur(gray, (5, 5), 0)
- # Apply the threshold to the grayscale row image
+edges = cv2.Canny(blurred, 50, 150)
+
+# Finner eksterne konturer i bildet(dvs. at cellene ikke blir detektert)
+contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+# Finner konturen som er størst, dette vil bli tabellen
+if contours:
+    largest_contour = max(contours, key=cv2.contourArea)
+
+    # Finner koordinatene til hjørnene til tabellen
+    x, y, w, h = cv2.boundingRect(largest_contour)
+    pts = np.array([[x, y], [x + w, y], [x, y + h], [x + w, y + h]], dtype="float32")
+
+    # For å sikre at hele tabellen blir med i bildet, tas det med en kant på 20 piksler (kan endres) av bildet rundt tabellen
+    border_size = 20
+    width, height = w + 2 * border_size, h + 2 * border_size
+
+    dst_pts = np.array([[border_size, border_size],
+                        [width - border_size - 1, border_size],
+                        [border_size, height - border_size - 1],
+                        [width - border_size - 1, height - border_size - 1]], dtype="float32")
+
+    # Retter opp bildet mer, gjør det enklere å definere horisontale og vertikale linjer senere
+    M = cv2.getPerspectiveTransform(pts, dst_pts)
+    warped = cv2.warpPerspective(image, M, (width, height))
+
+    # Lager bildet av en rettet opp tabell med en kant rundt tabellen
+    table_image = cv2.copyMakeBorder(warped, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=(0, 0, 0))
+
+    # Viser resultatet
+    cv2.imshow('Tabellen', table_image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+
+"""Histogram"""
+
+# Definerer hva som er maks og min pikselverdi i det strukkete bildet, her bruker man hele skalaen
+min_output = 0
+max_output = 255
+
+# Finner maks og min pikselverdi i bildet som er lastet inn
+min_input = np.min(table_image)
+max_input = np.max(table_image)
+
+# Finner de nye gråtoneverdiene til bildet basert på de gamle
+stretched_image = np.uint8((table_image - min_input) / (max_input - min_input) * (max_output - min_output) + min_output)
+
+# Lager det gamle og det nye histogrammet
+original_hist = cv2.calcHist([table_image], [0], None, [256], [0, 256])
+stretched_hist = cv2.calcHist([stretched_image], [0], None, [256], [0, 256])
+
+original_hist = np.squeeze(original_hist)
+stretched_hist = np.squeeze(stretched_hist)
+
+# Plotter histogrammene
+plt.figure(figsize=(10, 5))
+plt.subplot(1, 2, 1)
+plt.title('Originalt histogram')
+plt.xlabel('Gråtoneverdi')
+plt.ylabel('Antall piksler')
+plt.bar(np.arange(256), original_hist, width=0.7, color='black')
+
+plt.subplot(1, 2, 2)
+plt.title('Strukket histogram')
+plt.xlabel('Gråtoneverdi')
+plt.ylabel('Antall piksler')
+plt.bar(np.arange(256), stretched_hist, width=0.7, color='black')
+
+plt.tight_layout()
+plt.show()
+
+# Viser det originale og det nye bildet
+cv2.imshow('Originalt bilde', table_image)
+cv2.waitKey(0)
+cv2.imshow('Kontrastforbedret bilde', stretched_image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+
+""" Koden starter med forprosessering av bildet. 
+Dette inkluderer å gjøre bildet om til gråtoner, ta en lavpass-filtrering og terskle bildet.
+Tersklingsverdien kan endres under, og må endres slik at man får med alle cellene i kantdeteksjon.
+Får man opp en melding at deteksjon ikke kan gjennomføres, er det denne verdien som må endres. """
+
+# Tersklingsverdi (denne som endres)
+threshold_value = 80
+
+#Forprosessering
+gray = cv2.cvtColor(stretched_image, cv2.COLOR_BGR2GRAY)
+blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 _, thresh = cv2.threshold(blurred, threshold_value, 255, cv2.THRESH_BINARY)
 
-# Display the thresholded row image
-cv2.imshow("Thresholded Image", thresh)
+# Viser det tersklede bildet
+cv2.imshow("Tersklet bilde", thresh)
 cv2.waitKey(0) 
 
-# Find contours in the blurred image
+
+
+""" Deretter må man finne cellene i tabellen. Dette gjøres med kantdeteksjon. """
+
+# Finner kantene i det tersklede bildet, dette detekterer cellene i tabellen
 contours, _ = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-# Filter and draw the contours
+# Liste som lagrer kantene til cellene
 filtered_contours = []
 
-min_area_threshold = 1000
+# Denne verdien passer på at bare objekter med et minimumsareal blir detektert. Dette er for å hindre at støy blir detektert som objekter.
+min_area_detection = 10000
 
+# Finner objekter med areal høyere enn minimumsarealet
 for contour in contours:
-    # Filter based on contour area
     area = cv2.contourArea(contour)
-    if area > min_area_threshold:
+    if area > min_area_detection:
         filtered_contours.append(contour)
 
-# Draw the filtered contours on the original image
+# Tegner kantene oppå originalbildet
 result_image = image.copy()
 cv2.drawContours(result_image, filtered_contours, -1, (0, 255, 0), 2)
 
-# Display the result
-cv2.imshow('Contours', result_image)
+# Viser kantdeteksjonen
+cv2.imshow('Kantdeteksjon', result_image)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
-# Filter and draw the contours for rows
-min_row_height = 50
-row_images = []
+# Cellene blir også sjekket om de har en minimumhøyde. Dette er igjen for å ikke detektere andre objekter i bildet.
+min_cell_height = 70
+cells_list = []
 
+# Står cellene høydekravet blir de lagt til i en liste
 for contour in contours:
     x, y, w, h = cv2.boundingRect(contour)
 
-    if h >= min_row_height:
-        row_image = gray[y:y+h, x:x+w]
-        row_images.append([row_image,x,y])  # Insert the row at the beginning of the list
+    if h >= min_cell_height:
+        cell_image = gray[y:y+h, x:x+w]
+        cells_list.append([cell_image,x,y])
 
-row_images.sort(key=lambda x:(x[2]))
-
-if not len(row_images) == 67:
-    print("Detection not possible")
+# Dette er en måte å sjekke at alle cellene er med i deteksjonen. Her sjekkes at alle cellene i tabellen pluss 2 (grunnet deteksjonsalgoritmen) er med i listen.
+if len(cells_list) < 67:
+    print("For få objekter detektert. Endre tersklingsverdien eller minimumshøyde.")
+    sys.exit()
+elif len(cells_list) > 67:
+    print("For mange objekter detekert. Endre tersklingsverdien eller minimumshøyde.")
     sys.exit()
 
-sorted_images = []
 
-for i in range(2,len(row_images)-2,5):
+
+""" Etter at koden har detektert cellene må den sortere dem slik at de kommer i riktig rekkefølge i listen.
+Cellene blir sortert fra øverst til nederst, og fra venstre til høyre i tabellen."""
+
+# Cellene blir sortert etter y-koordinat (fra øverst til nederst)
+cells_list.sort(key=lambda x:(x[2])) 
+
+# Ny liste for sorterte celler
+sorted_cells = []
+
+# For-løkken tar for seg hver rad i tabellen. Den sorterer cellene etter x-koordinat. Den fjerner cellen med oppgavenummer, og også den øverste raden med bokstavene og "oppgaver".
+for i in range(2,len(cells_list)-2,5):
     if i == 2:
         pass
     else:
-        nyliste = [row_images[i],row_images[i+1],row_images[i+2],row_images[i+3],row_images[i+4]]
-        nyliste.sort(key=lambda x:(x[1]))
-        nyliste.pop(0)
+        temp_list = [cells_list[i], cells_list[i+1], cells_list[i+2], cells_list[i+3], cells_list[i+4]]
+        temp_list.sort(key=lambda x:(x[1]))
+        temp_list.pop(0)
 
-        for j in nyliste:
-            print(j[1],j[2])
-            sorted_images.append(j[0])
+        #De sorterte cellene blir lagt inn i en ny liste. Nå er de sortert etter x- og y-koordinat
+        for j in temp_list:
+            sorted_cells.append(j[0])
 
-# Loop through the sorted cell images
-for i, row_image in enumerate(sorted_images):
-    # Display the current row image
-    cv2.imshow(f"Cell {i + 1} - Original", row_image)
+
+
+""" Nå som cellene er sortert gjøres det mer bildebehandling på hver celle. Dette gjør det enklere å detektere et eventuelt kryss i cellen etterpå.
+Hver celle blir tersklet og erodert slik at et eventuelt kryss blir mer fremhevet. """
+
+# Maske for erosjon av cellene
+kernel = np.ones((5, 5), np.uint8)
+
+# For-løkke som går gjennom hver celle
+for i, cell_image in enumerate(sorted_cells):
+    
+    # Viser cellen uten bildebehandling
+    cv2.imshow(f"Celle {i + 1} - Original", cell_image)
     cv2.waitKey(0)
 
-    # Thresholding the cells
-    _, thresh_cell = cv2.threshold(row_image, 100, 255, cv2.THRESH_BINARY)
-    cv2.imshow(f"Cell {i + 1} - Thresholded", thresh_cell)
+    # Terskler cellen, bakgrunnen blir hvit mens kanter og kryss blir svarte
+    _, thresh_cell = cv2.threshold(cell_image, 100, 255, cv2.THRESH_BINARY)
+    cv2.imshow(f"Celle {i + 1} - Tersklet", thresh_cell)
     cv2.waitKey(0)
 
-    # Apply erosion to the thresholded cell
+    # Erosjon på cellene. Kryss blir fremhevet, men det blir kantene og støy som er med også
     eroded_cell = cv2.erode(thresh_cell, kernel, iterations=5)
-
-    # Calculate the average pixel value for the current row image
-    average_value = np.mean(eroded_cell)
-    print(f"Cell {i + 1} - Average Pixel Value: {average_value}")
-
-    # Display the eroded cell
-    cv2.imshow(f"Cell {i + 1} - Eroded", eroded_cell)
+    cv2.imshow(f"Celle {i + 1} - Erosjon", eroded_cell)
     cv2.waitKey(0)
 
-    # Close the windows before moving on to the next set of images
+    # Lukker vinduene for å gjøre programmet lettere å kjøre
     cv2.destroyAllWindows()
-    cv2.waitKey(1)  # Add a small delay to make sure windows are closed
+    cv2.waitKey(1)
 
-    # Loop through the sorted row images
-for i in range(0, len(sorted_images), 4):
-    group = sorted_images[i:i + 4]
 
-    # Calculate the average pixel values for each image in the group
+
+""" Nå som det er lettere å finne et kryss, er det på tide å faktisk finne cellene med kryss.
+Koden vil ta for seg rad for rad. Den vil finne gjennomsnittsverdien av gråtonene til hver celle.
+Deretter vil den se om det er store forskjeller i verdiene. Siden krysset har blitt større med erosjon,
+forventer man at en celle med kryss vil ha en lav gjennomsnittlig gråtoneverdi.
+Hvis koden finner en stor nok forskell blir plassen til cellen i group-listen lagret i en liste. Hvis ikke, lagres en null for ingen svar."""
+
+# Lager en liste for hvor krysset befinner seg
+x_location = []
+
+# Variabel for å kunne vise radnummeret som er jobbet på
+row_number = 1
+
+# For-løkke tar for seg en rad om gangen ved å ha en step-size på 4
+for i in range(0, len(sorted_cells), 4):
+    group = sorted_cells[i:i + 4]
+
+    # Finner gjennomsnittlig gråtoneverdi for hver celle i raden
     average_values = [np.mean(cv2.erode(cell, kernel, iterations=5)) for cell in group]
 
-    # Find the index with the lowest value
-    min_index = np.argmin(average_values)
+    # Viser radnummer med gjennomsnittsverdi til hver celle
+    print(f"Rad {row_number} - Gjen. verdi for hver celle: {average_values}")
 
-    # Check for differences over 20
+    # Radnummer økes med 1
+    row_number += 1
+
+    # Finner plasseringen til cellen med lavest gjennomsnittsverdi
+    index_min_value = np.argmin(average_values)
+
+    # En for-løkke som sjekker om det er en differanse. Hvor stor differansen trenger å være kan endres på
     found_difference = False
     for j in range(len(average_values)):
-        if j != min_index and abs(average_values[min_index] - average_values[j]) > 20:
-            # Store the position of the image with the lowest pixel value (1, 2, 3, or 4)
-            position = min_index + 1
+        if j != index_min_value and (average_values[j] - average_values[index_min_value]) > 20:
+            # Lagrer posisjonen til cellen med lavest gråtoneverdi (1, 2, 3, eller 4)
+            position = index_min_value + 1
             x_location.append(position)
             found_difference = True
-            break  # No need to check further if a difference is found
+            break
 
-    # Append zero if no pair has a difference over 20
+    # Hvis det ikke er en stor forskjell blir det lagt til en 0 i listen for denne raden
     if not found_difference:
         x_location.append(0)
 
-# Print the list of image positions with a difference over 30 or 0 if no difference
-print("Image Positions with a Difference over 30 or 0 if No Difference:", x_location)
-
+# Printer ut posisjonen til krysset i hver rad i svarskjemaet
+print("Svar fra svarskjemaet: ", x_location)
 
 cv2.destroyAllWindows()
 
-# Create a dictionary to map letters to their corresponding numeric values
-letter_to_value = {'A': 1, 'B': 2, 'C': 3, 'D': 4}
+
+
+""" Til slutt må svarene fra svarskjemaet sammenliknes med fasiten."""
+
+# Variabel for å holde styr på poengsummen til svararket
+total_points = 0
+
+# Fasiten blir gjort om fra bokstaver til korresponderende tall
+answer_values = {'A': 1, 'B': 2, 'C': 3, 'D': 4}
 
 # Sammenlikner fasiten med de innleste svarene
 for i in range(len(x_location)):
     number_value = x_location[i]
-    letter_value = letter_to_value.get(letters_list[i], 0)  # Default to 0 if the letter is not in the mapping
+    letter_value = answer_values.get(answer_list[i], 0)
 
-    # Compare the values and calculate the points
+    # Sammenlikner tallene som er hentet fra fasiten med tallene som ligger i listen for svarene fra svararket
     if number_value == letter_value:
         points = 1
     elif number_value == 0 or letter_value == 0:
@@ -166,5 +292,5 @@ for i in range(len(x_location)):
 
     total_points += points
 
-# Print the total points
-print(f"Total Points: {total_points}")
+# Viser total poengsum
+print(f"Total poengsum: {total_points}")

@@ -3,7 +3,7 @@ import numpy as np
 import sys
 
 # Laster inn det kontrastforbedrede tabellbildet
-image_path = '/Users/Ellaberg/Desktop/ordentlig_test_tabell.jpg'
+image_path = '/Users/Ellaberg/Desktop/svarark_etter_histogram.jpg'
 image = cv2.imread(image_path)
 
 # Dette er listen for fasitsvar, kan endres hvis fasiten endrer seg
@@ -24,7 +24,7 @@ Tersklingsverdien kan endres under, og må endres slik at man får med alle cell
 Får man opp en melding at deteksjon ikke kan gjennomføres, er det denne verdien som må endres. """
 
 # Tersklingsverdi (denne som endres)
-threshold_value = 70
+threshold_value = 75
 
 #Forprosessering
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -46,7 +46,7 @@ contours, _ = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 filtered_contours = []
 
 # Denne verdien passer på at bare objekter med et minimumsareal blir detektert. Dette er for å hindre at støy blir detektert som objekter.
-min_area_detection = 1000
+min_area_detection = 10000
 
 # Finner objekter med areal høyere enn minimumsarealet
 for contour in contours:
@@ -64,7 +64,7 @@ cv2.waitKey(0)
 cv2.destroyAllWindows()
 
 # Cellene blir også sjekket om de har en minimumhøyde. Dette er igjen for å ikke detektere andre objekter i bildet.
-min_cell_height = 50
+min_cell_height = 70
 cells_list = []
 
 # Står cellene høydekravet blir de lagt til i en liste
@@ -76,8 +76,11 @@ for contour in contours:
         cells_list.append([cell_image,x,y])
 
 # Dette er en måte å sjekke at alle cellene er med i deteksjonen. Her sjekkes at alle cellene i tabellen pluss 2 (grunnet deteksjonsalgoritmen) er med i listen.
-if not len(cells_list) == 67:
-    print("Kantdeteksjon er ikke mulig. Endre tersklingsverdien.")
+if len(cells_list) < 67:
+    print("For få objekter detektert. Endre tersklingsverdien eller minimumshøyde.")
+    sys.exit()
+elif len(cells_list) > 67:
+    print("For mange objekter detekert. Endre tersklingsverdien eller minimumshøyde.")
     sys.exit()
 
 
