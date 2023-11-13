@@ -21,7 +21,7 @@ Tersklingsverdien kan endres under, og må endres slik at man får med alle cell
 Får man opp en melding at deteksjon ikke kan gjennomføres, er det denne verdien som må endres. """
 
 # Tersklingsverdi (denne som endres)
-threshold_value = 75
+threshold_value = 60
 
 #Forprosessering
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -73,10 +73,10 @@ for contour in contours:
         cells_list.append([cell_image,x,y])
 
 # Dette er en måte å sjekke at alle cellene er med i deteksjonen. Her sjekkes at alle cellene i tabellen pluss 2 (grunnet deteksjonsalgoritmen) er med i listen.
-if len(cells_list) < 67:
+if len(cells_list) < 47:
     print("For få objekter detektert. Endre tersklingsverdien eller minimumshøyde.")
     sys.exit()
-elif len(cells_list) > 67:
+elif len(cells_list) > 47:
     print("For mange objekter detekert. Endre tersklingsverdien eller minimumshøyde.")
     sys.exit()
 
