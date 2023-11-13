@@ -9,9 +9,6 @@ image = cv2.imread(image_path)
 # Dette er listen for fasitsvar, kan endres hvis fasiten endrer seg
 answer_list = ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A']
 
-# Initialize a kernel for erosion (adjust the size as needed)
-kernel = np.ones((5, 5), np.uint8)
-
 # Viser originalbildet
 cv2.imshow("Originalt bilde", image)
 cv2.waitKey(0)
@@ -111,6 +108,9 @@ for i in range(2,len(cells_list)-2,5):
 
 """ Nå som cellene er sortert gjøres det mer bildebehandling på hver celle. Dette gjør det enklere å detektere et eventuelt kryss i cellen etterpå.
 Hver celle blir tersklet og erodert slik at et eventuelt kryss blir mer fremhevet. """
+
+# Maske for erosjon
+kernel = np.ones((5, 5), np.uint8)
 
 # For-løkke som går gjennom hver celle
 for i, cell_image in enumerate(sorted_cells):
